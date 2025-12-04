@@ -1,5 +1,6 @@
 // server.js - Servidor web completo
 const http = require("http");
+const url = require("url");
 const Router = require("./router");
 const TemplateEngine = require("./templates");
 const StaticServer = require("./static-server");

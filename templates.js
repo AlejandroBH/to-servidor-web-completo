@@ -35,7 +35,8 @@ class TemplateEngine {
     template = template.replace(
       /\{\{#each (\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g,
       (match, arrayName, templateContent) => {
-        const array = data[arrayName] || [];
+        const possibleArray = data[arrayName];
+        const array = Array.isArray(possibleArray) ? possibleArray : [];
         return array
           .map((item) => {
             let itemTemplate = templateContent;
