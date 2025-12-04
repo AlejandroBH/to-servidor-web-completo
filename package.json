@@ -1,0 +1,13 @@
+{
+  "name": "servidor-web-completo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server"
+  },
+  "keywords": [],
+  "author": "Alejandro Barrera <alejandro91dark@hotmail.es>",
+  "license": "ISC",
+  "type": "commonjs"
+}
