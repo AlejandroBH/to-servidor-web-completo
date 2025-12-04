@@ -1,6 +1,8 @@
 // middleware.js - Middleware común
-const fs = require("fs").promises;
+const fs = require("fs");
+const fsp = fs.promises;
 const path = require("path");
+const url = require("url");
 
 // Middleware de logging
 function logger(context) {
@@ -20,8 +22,9 @@ function cors(context) {
 // Middleware para parsear JSON
 async function jsonParser(context) {
   const { request } = context;
+  const contentType = (request.headers["content-type"] || "").toLowerCase();
 
-  if (request.headers["content-type"] === "application/json") {
+  if (contentType.includes("application/json")) {
     let body = "";
 
     return new Promise((resolve, reject) => {
@@ -31,7 +34,7 @@ async function jsonParser(context) {
 
       request.on("end", () => {
         try {
-          context.body = JSON.parse(body);
+          context.body = body ? JSON.parse(body) : null;
           resolve();
         } catch (error) {
           reject(new Error("JSON inválido"));
@@ -50,11 +53,12 @@ async function staticFiles(context) {
   const pathname = parsedUrl.pathname;
 
   // Solo servir archivos de /public/
-  if (pathname.startsWith("/public/")) {
-    const filePath = path.join(__dirname, pathname);
+  if (pathname && pathname.startsWith("/public/")) {
+    const relative = pathname.replace(/^\//, "");
+    const filePath = path.join(__dirname, relative);
 
     try {
-      const stat = await fs.stat(filePath);
+      const stat = await fsp.stat(filePath);
 
       if (stat.isFile()) {
         const ext = path.extname(filePath);
@@ -64,7 +68,7 @@ async function staticFiles(context) {
 
         const stream = fs.createReadStream(filePath);
         stream.pipe(response);
-        return "end"; // Terminar procesamiento
+        return true; // Indica que se sirvió el archivo
       }
     } catch (error) {
       // Archivo no encontrado, continuar

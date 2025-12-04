@@ -2,9 +2,9 @@
   "name": "servidor-web-completo",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node server"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "Alejandro Barrera <alejandro91dark@hotmail.es>",

@@ -86,7 +86,11 @@ class Router {
 
     // Ejecutar middlewares globales
     for (const middleware of this.middlewares) {
-      await middleware(context);
+      const mwResult = await middleware(context);
+      if (mwResult === true || mwResult === "end") {
+        // El middleware respondió y terminó la petición
+        return;
+      }
     }
 
     // Ejecutar handlers de la ruta
