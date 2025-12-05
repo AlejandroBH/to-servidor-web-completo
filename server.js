@@ -9,10 +9,34 @@ const Auth = require("./auth");
 
 // Datos de ejemplo
 const productos = [
-  { id: 1, nombre: "Laptop Gaming", precio: 1200, categoria: "Electrónica" },
-  { id: 2, nombre: "Mouse Inalámbrico", precio: 50, categoria: "Accesorios" },
-  { id: 3, nombre: "Teclado Mecánico", precio: 150, categoria: "Accesorios" },
-  { id: 4, nombre: 'Monitor 27"', precio: 300, categoria: "Electrónica" },
+  {
+    id: 1,
+    nombre: "Laptop Gaming",
+    precio: 1200,
+    categoria: "Electrónica",
+    imagen: "producto-1.jpg",
+  },
+  {
+    id: 2,
+    nombre: "Mouse Inalámbrico",
+    precio: 50,
+    categoria: "Accesorios",
+    imagen: "producto-2.jpg",
+  },
+  {
+    id: 3,
+    nombre: "Teclado Mecánico",
+    precio: 150,
+    categoria: "Accesorios",
+    imagen: "producto-3.jpg",
+  },
+  {
+    id: 4,
+    nombre: 'Monitor 27"',
+    precio: 300,
+    categoria: "Electrónica",
+    imagen: "producto-4.jpg",
+  },
 ];
 
 // Inicializar componentes

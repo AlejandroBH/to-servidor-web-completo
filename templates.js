@@ -111,6 +111,7 @@ class TemplateEngine {
                   return val && val[prop] !== undefined ? val[prop] : "";
                 }
               );
+
               return itemTemplate;
             })
             .join("");

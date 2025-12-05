@@ -11,6 +11,11 @@
     {{#each productos}}
     <div class="producto-card">
       <h4>{{nombre}}</h4>
+      <img
+        class="producto-imagen"
+        src="/static/images/{{imagen}}"
+        alt="{{nombre}}"
+      />
       <p class="precio">${{precio}}</p>
       <span class="categoria">{{categoria}}</span>
       <a href="/productos/{{id}}" class="btn-secondary">Ver Detalles</a>
