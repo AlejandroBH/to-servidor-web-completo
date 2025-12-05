@@ -1,0 +1,67 @@
+<div class="login-container">
+  <div class="login-header">
+    <h1>🔐 Iniciar Sesión</h1>
+    <p>Accede a tu cuenta</p>
+  </div>
+
+  <div class="error-message" id="errorMessage"></div>
+
+  <form id="loginForm" method="POST" action="/login">
+    <div class="form-group">
+      <label for="username">Usuario</label>
+      <input
+        type="text"
+        id="username"
+        name="username"
+        required
+        placeholder="Ingresa tu usuario"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Contraseña</label>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        required
+        placeholder="Ingresa tu contraseña"
+      />
+    </div>
+
+    <button type="submit" class="login-btn">Iniciar Sesión</button>
+  </form>
+
+  <div class="demo-users">
+    <h3>👥 Usuarios de Demo</h3>
+    <div class="user-buttons">
+      <button
+        class="user-btn"
+        onclick="completarFormulario('admin', 'admin123')"
+      >
+        <span class="user-btn-name">Admin</span>
+        <span class="user-btn-pass">Acceso total</span>
+      </button>
+      <button
+        class="user-btn"
+        onclick="completarFormulario('vendedor', 'vendedor123')"
+      >
+        <span class="user-btn-name">Vendedor</span>
+        <span class="user-btn-pass">Permisos limitados</span>
+      </button>
+      <button
+        class="user-btn"
+        onclick="completarFormulario('cliente', 'cliente123')"
+      >
+        <span class="user-btn-name">Cliente</span>
+        <span class="user-btn-pass">Acceso de lectura</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="back-link">
+    <a href="/">← Volver al inicio</a>
+  </div>
+</div>
+
+<script src="/static/js/login.js"></script>

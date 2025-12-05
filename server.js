@@ -5,6 +5,7 @@ const Router = require("./router");
 const TemplateEngine = require("./templates");
 const StaticServer = require("./static-server");
 const { logger, cors, jsonParser, staticFiles } = require("./middleware");
+const Auth = require("./auth");
 
 // Datos de ejemplo
 const productos = [
@@ -22,6 +23,7 @@ const staticServer = new StaticServer();
 // Configurar middleware
 router.use(logger);
 router.use(cors);
+router.use(jsonParser);
 
 // Rutas principales
 router.get("/", async (context) => {
@@ -104,6 +106,91 @@ router.get("/acerca", async (context) => {
   response.end(html);
 });
 
+// Autenticación
+router.get("/login", async (context) => {
+  const { response } = context;
+
+  if (Auth.requerirAutenticacion(context)) {
+    response.writeHead(302, { Location: "/dashboard" });
+    response.end();
+    return;
+  }
+
+  const html = await templates.render("login", {
+    titulo: "Iniciar Sesión",
+  });
+
+  response.writeHead(200, { "Content-Type": "text/html" });
+  response.end(html);
+});
+
+router.post("/login", async (context) => {
+  const { response, body } = context;
+
+  const username = body?.username;
+  const password = body?.password;
+
+  if (!username || !password) {
+    response.writeHead(302, { Location: "/login?error=campos_vacios" });
+    response.end();
+    return;
+  }
+
+  const usuario = Auth.validarCredenciales(username, password);
+
+  if (!usuario) {
+    response.writeHead(302, {
+      Location: "/login?error=credenciales_invalidas",
+    });
+    response.end();
+    return;
+  }
+
+  const sesion = Auth.crearSesion(usuario);
+
+  Auth.establecerCookieSesion(response, sesion.token);
+
+  response.writeHead(302, { Location: "/dashboard" });
+  response.end();
+});
+
+// Dashboard
+router.get("/dashboard", async (context) => {
+  const { response } = context;
+
+  const sesion = Auth.requerirAutenticacion(context);
+
+  if (!sesion) {
+    response.writeHead(302, { Location: "/login" });
+    response.end();
+    return;
+  }
+
+  const html = await templates.render("dashboard", {
+    titulo: "Dashboard",
+    usuario: sesion.usuario,
+  });
+
+  response.writeHead(200, { "Content-Type": "text/html" });
+  response.end(html);
+});
+
+// Logout
+router.post("/logout", async (context) => {
+  const { response } = context;
+
+  const sesion = Auth.requerirAutenticacion(context);
+
+  if (sesion) {
+    Auth.eliminarSesion(sesion.token);
+  }
+
+  Auth.limpiarCookieSesion(response);
+
+  response.writeHead(302, { Location: "/" });
+  response.end();
+});
+
 // API REST
 router.get("/api/productos", (context) => {
   const { response, query } = context;
@@ -164,6 +251,83 @@ router.get("/api/productos/:id", (context) => {
   response.end(JSON.stringify(producto));
 });
 
+// Obtener perfil del usuario autenticado
+router.get("/api/perfil", (context) => {
+  const { response } = context;
+
+  const sesion = Auth.requerirAutenticacion(context);
+
+  if (!sesion) {
+    response.writeHead(401, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ error: "No autorizado" }));
+    return;
+  }
+
+  response.writeHead(200, { "Content-Type": "application/json" });
+  response.end(
+    JSON.stringify({
+      usuario: sesion.usuario,
+      sesion: {
+        creada: sesion.creada,
+        expira: sesion.expira,
+      },
+    })
+  );
+});
+
+router.get("/api/auth/status", (context) => {
+  const { response } = context;
+
+  const sesion = Auth.requerirAutenticacion(context);
+
+  if (!sesion) {
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ autenticado: false }));
+    return;
+  }
+
+  response.writeHead(200, { "Content-Type": "application/json" });
+  response.end(
+    JSON.stringify({
+      autenticado: true,
+      usuario: sesion.usuario,
+    })
+  );
+});
+
+router.get("/api/usuarios", (context) => {
+  const { response } = context;
+
+  const sesion = Auth.requerirAutenticacion(context);
+
+  if (!sesion) {
+    response.writeHead(401, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ error: "No autorizado" }));
+    return;
+  }
+
+  if (sesion.usuario.username !== "admin") {
+    response.writeHead(403, { "Content-Type": "application/json" });
+    response.end(
+      JSON.stringify({
+        error: "Acceso denegado. Solo administrador puede ver usuarios.",
+      })
+    );
+    return;
+  }
+
+  // Retornar usuarios sin contraseñas
+  const usuariosPublicos = Auth.usuariosAutorizados.map((u) => ({
+    id: u.id,
+    username: u.username,
+    nombre: u.nombre,
+    email: u.email,
+  }));
+
+  response.writeHead(200, { "Content-Type": "application/json" });
+  response.end(JSON.stringify(usuariosPublicos));
+});
+
 // Crear servidor
 const servidor = http.createServer(async (request, response) => {
   const { method } = request;
@@ -220,7 +384,15 @@ async function iniciarServidor() {
       );
       console.log(`📄 Página principal: http://localhost:${PUERTO}`);
       console.log(`🛍️  Productos: http://localhost:${PUERTO}/productos`);
+      console.log(`🔐 Iniciar sesión: http://localhost:${PUERTO}/login`);
+      console.log(`📊 Dashboard: http://localhost:${PUERTO}/dashboard`);
       console.log(`📡 API: http://localhost:${PUERTO}/api/productos`);
+      console.log(
+        `👤 API Perfil: http://localhost:${PUERTO}/api/perfil (autenticado)`
+      );
+      console.log(
+        `👥 API Usuarios: http://localhost:${PUERTO}/api/usuarios (solo admin)`
+      );
     });
   } catch (error) {
     console.error("Error al iniciar el servidor:", error);
