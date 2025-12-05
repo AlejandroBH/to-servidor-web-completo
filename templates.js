@@ -35,21 +35,88 @@ class TemplateEngine {
 
     let templateContent = this.cache.get(templatePath);
 
+    // Resolver rutas con puntos, p.ej. 'productos.length'
+    function resolvePath(root, path) {
+      if (!path) return undefined;
+      const parts = path.split(".");
+      let cur = root;
+      for (const p of parts) {
+        if (cur === undefined || cur === null) return undefined;
+        cur = cur[p];
+      }
+      return cur;
+    }
+
+    // Soporte básico para condicionales {{#if var}}...{{else}}...{{/if}}
+    templateContent = templateContent.replace(
+      /\{\{#if ([\w.@]+)\}\}([\s\S]*?)\{\{\/if\}\}/g,
+      (match, varName, inner) => {
+        // Soportar {{else}} dentro del bloque
+        const elseMatch = inner.match(/([\s\S]*?)\{\{else\}\}([\s\S]*)/);
+        const value = resolvePath(data, varName);
+        const truthy =
+          value !== undefined &&
+          value !== null &&
+          ((Array.isArray(value) && value.length > 0) ||
+            (typeof value === "object" &&
+              !Array.isArray(value) &&
+              Object.keys(value).length > 0) ||
+            (typeof value === "boolean" && value) ||
+            (typeof value === "number" && value !== 0) ||
+            (typeof value === "string" && value !== ""));
+
+        if (elseMatch) {
+          const ifPart = elseMatch[1];
+          const elsePart = elseMatch[2];
+          return truthy ? ifPart : elsePart;
+        } else {
+          return truthy ? inner : "";
+        }
+      }
+    );
+
     // Soporte para bucles básicos {{#each items}}{{/each}} en el template hijo
     templateContent = templateContent.replace(
-      /\{\{#each (\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g,
+      /\{\{#each ([\w.@]+)\}\}([\s\S]*?)\{\{\/each\}\}/g,
       (match, arrayName, inner) => {
-        const possibleArray = data[arrayName];
-        const array = Array.isArray(possibleArray) ? possibleArray : [];
-        return array
-          .map((item) => {
-            let itemTemplate = inner;
-            itemTemplate = itemTemplate.replace(/\{\{(\w+)\}\}/g, (m, prop) => {
-              return item[prop] !== undefined ? item[prop] : "";
-            });
-            return itemTemplate;
-          })
-          .join("");
+        const possible = resolvePath(data, arrayName);
+        if (Array.isArray(possible)) {
+          return possible
+            .map((item) => {
+              let itemTemplate = inner;
+              itemTemplate = itemTemplate.replace(
+                /\{\{(@?\w+)\}\}/g,
+                (m, prop) => {
+                  if (prop === "this")
+                    return item !== undefined && item !== null ? item : "";
+                  return item && item[prop] !== undefined ? item[prop] : "";
+                }
+              );
+              return itemTemplate;
+            })
+            .join("");
+        }
+
+        if (possible && typeof possible === "object") {
+          return Object.keys(possible)
+            .map((key) => {
+              const val = possible[key];
+              let itemTemplate = inner;
+              itemTemplate = itemTemplate.replace(
+                /\{\{(@?\w+)\}\}/g,
+                (m, prop) => {
+                  if (prop === "@key") return key;
+                  if (prop === "this")
+                    return val !== undefined && val !== null ? val : "";
+                  return val && val[prop] !== undefined ? val[prop] : "";
+                }
+              );
+              return itemTemplate;
+            })
+            .join("");
+        }
+
+        return "";
       }
     );
 
@@ -74,9 +141,10 @@ class TemplateEngine {
       }
     }
 
-    // Reemplazar variables simples {{variable}} en el HTML final
-    finalHtml = finalHtml.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-      return data[key] !== undefined ? data[key] : "";
+    // Reemplazar variables simples y con rutas con puntos {{variable}} o {{a.b.c}} en el HTML final
+    finalHtml = finalHtml.replace(/\{\{([\w.@]+)\}\}/g, (match, key) => {
+      const val = resolvePath(data, key);
+      return val !== undefined && val !== null ? val : "";
     });
 
     return finalHtml;
