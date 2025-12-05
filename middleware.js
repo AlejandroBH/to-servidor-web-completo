@@ -43,6 +43,26 @@ async function jsonParser(context) {
 
       request.on("error", reject);
     });
+  } else if (contentType.includes("application/x-www-form-urlencoded")) {
+    let body = "";
+
+    return new Promise((resolve, reject) => {
+      request.on("data", (chunk) => {
+        body += chunk.toString();
+      });
+
+      request.on("end", () => {
+        try {
+          const params = new URLSearchParams(body);
+          context.body = Object.fromEntries(params);
+          resolve();
+        } catch (error) {
+          reject(new Error("Formulario inválido"));
+        }
+      });
+
+      request.on("error", reject);
+    });
   }
 }
 
